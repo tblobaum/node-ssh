@@ -18,16 +18,18 @@ protected:
 
 public:
     ssh_bind sshbind;
+    Handle<Function> handler;
     
     SSHD(const Arguments &args) {
         sshbind = ssh_bind_new();
         
-        if (!args[0]->IsUndefined()) {
-            setPort(args[0]);
+        if (args[0]->IsFunction()) {
+            handler = Handle<Function>::Cast(args[0]);
         }
-        
-        if (!args[1]->IsUndefined()) {
-            setHost(args[1]);
+        else {
+            ThrowException(Exception::TypeError(
+                String::New("first argument must be a function")
+            ));
         }
     }
     
@@ -122,21 +124,15 @@ Handle<Value> SSHD::listen(const Arguments &args) {
     ssh_session session = ssh_new();
     
     if (ssh_bind_listen(sshd->sshbind) < 0) {
-        return ThrowException(Exception::TypeError(
-            String::Concat(
-                String::New("error listening to socket: "),
-                String::New(ssh_get_error(sshd->sshbind))
-            )
+        return ThrowException(Exception::Error(
+            String::New(ssh_get_error(sshd->sshbind))
         ));
     }
     
     int r = ssh_bind_accept(sshd->sshbind, session);
     if (r == SSH_ERROR) {
-        return ThrowException(Exception::TypeError(
-            String::Concat(
-                String::New("error accepting a connection: "),
-                String::New(ssh_get_error(sshd->sshbind))
-            )
+        return ThrowException(Exception::Error(
+            String::New(ssh_get_error(sshd->sshbind))
         ));
     }
     
