@@ -1,6 +1,5 @@
 import Options
-import os
-import re
+import os, re
 from os.path import exists 
 
 srcdir = '.'
@@ -25,10 +24,8 @@ def build(bld):
     sshd.source = [ 'sshd.cc' ]
     sshd.cxxflags = [ '-D_FILE_OFFSET_BITS=64', '-D_LARGEFILE_SOURCE' ]
     
-    sshd.cxxflags.append(os.popen(
-        'pkg-config --cflags libssh'
-    ).readline().strip())
+    sshd.cxxflags.extend(re.split(r'\s+', os.popen(
+        'pkg-config --cflags --libs libssh'
+    ).readline().strip()))
     
-    sshd.cxxflags.append(os.popen(
-        'pkg-config --libs libssh'
-    ).readline().strip())
+    sshd.uselib = 'SSH'
