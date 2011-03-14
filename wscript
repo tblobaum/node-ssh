@@ -20,22 +20,15 @@ def configure(conf):
         conf.fatal('libssh pkg-config package (libssh.pc) not found')
 
 def build(bld):
-    obj = bld.new_task_gen('cxx', 'shlib', 'node_addon')
-    obj.target = 'ssh'
-    obj.source = [ 'ssh.cc' ]
-    obj.cxxflags = [ '-D_FILE_OFFSET_BITS=64', '-D_LARGEFILE_SOURCE' ]
+    sshd = bld.new_task_gen('cxx', 'shlib', 'node_addon')
+    sshd.target = 'sshd'
+    sshd.source = [ 'sshd.cc' ]
+    sshd.cxxflags = [ '-D_FILE_OFFSET_BITS=64', '-D_LARGEFILE_SOURCE' ]
     
-    obj.cxxflags.append(os.popen(
+    sshd.cxxflags.append(os.popen(
         'pkg-config --cflags libssh'
     ).readline().strip())
     
-    obj.cxxflags.append(os.popen(
+    sshd.cxxflags.append(os.popen(
         'pkg-config --libs libssh'
     ).readline().strip())
-
-def shutdown():
-    if Options.commands['clean']:
-        if exists('ssh.node'): os.unlink('ssh.node')
-    else:
-        if exists('build/default/ssh.node') and not exists('ssh.node'):
-            os.symlink('build/default/ssh.node', 'ssh.node')
