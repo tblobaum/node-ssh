@@ -5,6 +5,7 @@
 
 #include <libssh/libssh.h>
 #include <libssh/server.h>
+#include <libssh/callbacks.h>
 
 using namespace v8;
 using namespace node;
@@ -18,13 +19,15 @@ protected:
 
 public:
     ssh_bind sshbind;
-    Handle<Function> handler;
+    Persistent<Function> handler;
     
     SSHD(const Arguments &args) {
         sshbind = ssh_bind_new();
         
         if (args[0]->IsFunction()) {
-            handler = Handle<Function>::Cast(args[0]);
+            handler = Persistent<Function>::New(
+                Local<Function>::Cast(args[0])
+            );
         }
         else {
             ThrowException(Exception::TypeError(
@@ -37,6 +40,7 @@ public:
         if (port->IsNumber()) {
             int32_t *port_i = new int32_t;
             *port_i = Local<Number>::Cast(port)->Int32Value();
+printf("port_i = %d\n", *port_i);
             
             ssh_bind_options_set(
                 sshbind,
@@ -48,6 +52,7 @@ public:
             Local<String> s = Local<String>::Cast(port);
             char *port_s = new char[ s->Length() + 1 ];
             s->WriteAscii(port_s); // null terminates
+printf("port_s = %s\n", port_s);
             
             ssh_bind_options_set(
                 sshbind,
@@ -89,13 +94,13 @@ public:
         ct = Persistent<FunctionTemplate>::New(t);
         ct->InstanceTemplate()->SetInternalFieldCount(1);
         ct->SetClassName(String::NewSymbol("Server"));
-        NODE_SET_PROTOTYPE_METHOD(ct, "listen", listen);
+        NODE_SET_PROTOTYPE_METHOD(ct, "listen", Listen);
         
         target->Set(String::NewSymbol("Server"), ct->GetFunction());
     }
     
     static Handle<Value> Server(const Arguments &args);
-    static Handle<Value> listen(const Arguments &args);
+    static Handle<Value> Listen(const Arguments &args);
 };
 
 Persistent<FunctionTemplate> SSHD::ct;
@@ -108,9 +113,8 @@ Handle<Value> SSHD::Server(const Arguments &args) {
     return args.This();
 }
 
-Handle<Value> SSHD::listen(const Arguments &args) {
+Handle<Value> SSHD::Listen(const Arguments &args) {
     HandleScope scope;
-    
     SSHD *sshd = ObjectWrap::Unwrap<SSHD>(args.This());
     
     if (!args[0]->IsUndefined()) {
@@ -124,19 +128,21 @@ Handle<Value> SSHD::listen(const Arguments &args) {
     ssh_session session = ssh_new();
     
     if (ssh_bind_listen(sshd->sshbind) < 0) {
-        return ThrowException(Exception::Error(
+        return Exception::Error(
             String::New(ssh_get_error(sshd->sshbind))
-        ));
+        );
     }
     
     int r = ssh_bind_accept(sshd->sshbind, session);
     if (r == SSH_ERROR) {
-        return ThrowException(Exception::Error(
+        return Exception::Error(
             String::New(ssh_get_error(sshd->sshbind))
-        ));
+        );
     }
     
-    return Undefined();
+    sshd->Ref();
+    
+    return args.This();
 }
 
 extern "C" void init(Handle<Object> target) {
