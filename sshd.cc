@@ -18,6 +18,7 @@ protected:
     
 public:
     ssh_bind sshbind;
+    ssh_session session;
     Persistent<Object> keys;
     
     SSHD(const Arguments &);
@@ -83,6 +84,8 @@ public:
     
     static Handle<Value> Server(const Arguments &args);
     static Handle<Value> Listen(const Arguments &args);
+    static int Accept(eio_req *);
+    static int Accept_After(eio_req *);
 };
 
 Persistent<FunctionTemplate> SSHD::ct;
@@ -132,7 +135,7 @@ Handle<Value> SSHD::Listen(const Arguments &args) {
         sshd->setHost(args[1]);
     }
     
-    ssh_session session = ssh_new();
+    sshd->session = ssh_new();
     
     if (ssh_bind_listen(sshd->sshbind) < 0) {
         return Exception::Error(
@@ -140,14 +143,26 @@ Handle<Value> SSHD::Listen(const Arguments &args) {
         );
     }
     
-    int r = ssh_bind_accept(sshd->sshbind, session);
-    if (r == SSH_ERROR) {
-        return Exception::Error(
-            String::New(ssh_get_error(sshd->sshbind))
-        );
-    }
+    eio_custom(Accept, EIO_PRI_DEFAULT, Accept_After, sshd);
     
     return args.This();
+}
+
+int SSHD::Accept (eio_req *req) {
+    SSHD *sshd = (SSHD *) req->data;
+    int r = ssh_bind_accept(sshd->sshbind, sshd->session);
+    if (r == SSH_ERROR) {
+        // ssh_get_error(sshd->sshbind)
+        return 1;
+    }
+    return 0;
+}
+
+int SSHD::Accept_After (eio_req *req) {
+    HandleScope scope;
+    ev_unref(EV_DEFAULT_UC);
+    SSHD *sshd = (SSHD *) req->data;
+    return 0;
 }
 
 extern "C" void init(Handle<Object> target) {
