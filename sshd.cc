@@ -1,5 +1,4 @@
 #include <node.h>
-#include <node_buffer.h>
 #include <node_object_wrap.h>
 #include <v8.h>
 
@@ -16,32 +15,17 @@ private:
     
 protected:
     static Handle<Value> New(const Arguments &args);
-
+    
 public:
     ssh_bind sshbind;
-    Persistent<Function> handler;
+    Persistent<Object> keys;
     
-    SSHD(const Arguments &args) {
-        sshbind = ssh_bind_new();
-        
-        if (args[0]->IsFunction()) {
-            handler = Persistent<Function>::New(
-                Local<Function>::Cast(args[0])
-            );
-        }
-        else {
-            ThrowException(Exception::TypeError(
-                String::New("first argument must be a function")
-            ));
-        }
-    }
+    SSHD(const Arguments &);
     
     void setPort(Local<Value> port) {
         if (port->IsNumber()) {
             int32_t *port_i = new int32_t;
             *port_i = Local<Number>::Cast(port)->Int32Value();
-printf("port_i = %d\n", *port_i);
-            
             ssh_bind_options_set(
                 sshbind,
                 SSH_BIND_OPTIONS_BINDPORT,
@@ -52,8 +36,6 @@ printf("port_i = %d\n", *port_i);
             Local<String> s = Local<String>::Cast(port);
             char *port_s = new char[ s->Length() + 1 ];
             s->WriteAscii(port_s); // null terminates
-printf("port_s = %s\n", port_s);
-            
             ssh_bind_options_set(
                 sshbind,
                 SSH_BIND_OPTIONS_BINDPORT_STR,
@@ -89,13 +71,13 @@ printf("port_s = %s\n", port_s);
     static void Initialize(Handle<Object> & target) {
         HandleScope scope;
         
+        Persistent<FunctionTemplate> ct;
         Local<FunctionTemplate> t = FunctionTemplate::New(Server);
-        
         ct = Persistent<FunctionTemplate>::New(t);
         ct->InstanceTemplate()->SetInternalFieldCount(1);
         ct->SetClassName(String::NewSymbol("Server"));
-        NODE_SET_PROTOTYPE_METHOD(ct, "listen", Listen);
         
+        NODE_SET_PROTOTYPE_METHOD(ct, "listen", Listen);
         target->Set(String::NewSymbol("Server"), ct->GetFunction());
     }
     
@@ -104,6 +86,31 @@ printf("port_s = %s\n", port_s);
 };
 
 Persistent<FunctionTemplate> SSHD::ct;
+
+SSHD::SSHD(const Arguments &args) {
+    keys = Persistent<Object>::New(Local<Object>::Cast(args[0]));
+    sshbind = ssh_bind_new();
+    
+    Local<Object> dsaObj = Local<Object>::Cast(
+        keys->Get(String::NewSymbol("dsa"))
+    );
+    if (!dsaObj->IsUndefined()) {
+        Local<String> dsa = dsaObj->ToString();
+        char *dsa_s = new char[ dsa->Length() + 1 ];
+        dsa->WriteAscii(dsa_s);
+        ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_DSAKEY, dsa_s);
+    }
+    
+    Local<Object> rsaObj = Local<Object>::Cast(
+        keys->Get(String::NewSymbol("rsa"))
+    );
+    if (!rsaObj->IsUndefined()) {
+        Local<String> rsa = rsaObj->ToString();
+        char *rsa_s = new char[ rsa->Length() + 1 ];
+        rsa->WriteAscii(rsa_s);
+        ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_RSAKEY, rsa_s);
+    }
+}
 
 Handle<Value> SSHD::Server(const Arguments &args) {
     HandleScope scope;
@@ -139,8 +146,6 @@ Handle<Value> SSHD::Listen(const Arguments &args) {
             String::New(ssh_get_error(sshd->sshbind))
         );
     }
-    
-    sshd->Ref();
     
     return args.This();
 }
