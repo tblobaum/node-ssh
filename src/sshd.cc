@@ -73,6 +73,9 @@ void SSHD::Initialize(Handle<Object> & target) {
     );
 }
 
+Persistent<String> SSHD::sessionSymbol;
+Persistent<FunctionTemplate> SSHD::constructor_template;
+
 SSHD::SSHD(const Arguments &args) {
     closed = false;
     sshbind = ssh_bind_new();

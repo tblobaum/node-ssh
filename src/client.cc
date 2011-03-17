@@ -17,6 +17,8 @@ void Client::Initialize() {
     NODE_SET_PROTOTYPE_METHOD(constructor_template, "end", End);
 }
 
+Persistent<FunctionTemplate> Client::constructor_template;
+
 Handle<Value> Client::New(const Arguments &args) {
     HandleScope scope;
     
@@ -52,14 +54,14 @@ int Client::MessageAfter(eio_req *req) {
         
         Handle<Value> argv[1];
         argv[0] = Integer::New(ssh_message_type(msg));
-
+        
         client->Emit(String::NewSymbol("message"), 1, argv);
     }
     
     return 0;
 }
 
-Handle<Value> End(const Arguments &args) {
+Handle<Value> Client::End(const Arguments &args) {
     HandleScope scope;
     
     return args.This();
