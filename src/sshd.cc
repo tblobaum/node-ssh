@@ -1,11 +1,3 @@
-#include <node_object_wrap.h>
-#include <node_events.h>
-
-#include <cerrno>
-#include <libssh/libssh.h>
-#include <libssh/server.h>
-#include <libssh/callbacks.h>
-
 #include "sshd.h"
 
 extern "C" void init(Handle<Object> target) {
@@ -62,7 +54,7 @@ void SSHD::setHost(Local<Value> hostObj) {
 void SSHD::Initialize(Handle<Object> & target) {
     HandleScope scope;
     
-    Local<FunctionTemplate> t = FunctionTemplate::New(Server);
+    Local<FunctionTemplate> t = FunctionTemplate::New(New);
     constructor_template = Persistent<FunctionTemplate>::New(t);
     constructor_template->Inherit(EventEmitter::constructor_template);
     constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
@@ -114,7 +106,7 @@ SSHD::SSHD(const Arguments &args) {
     }
 }
 
-Handle<Value> SSHD::Server(const Arguments &args) {
+Handle<Value> SSHD::New(const Arguments &args) {
     HandleScope scope;
     
     SSHD *sshd = new SSHD(args);
