@@ -1,103 +1,80 @@
-#include <node.h>
 #include <node_object_wrap.h>
 #include <node_events.h>
-#include <v8.h>
 
 #include <cerrno>
 #include <libssh/libssh.h>
 #include <libssh/server.h>
 #include <libssh/callbacks.h>
 
-using namespace v8;
-using namespace node;
+#include "sshd.h"
 
-class SSHD : EventEmitter {
-private:
-    static Persistent<FunctionTemplate> constructor_template;
-    
-protected:
-    static Handle<Value> New(const Arguments &args);
-    
-public:
-    ssh_bind sshbind;
-    bool closed;
-    
-    SSHD(const Arguments &);
-    
-    void setPort(Local<Value> port) {
-        if (port->IsNumber()) {
-            int32_t *port_i = new int32_t;
-            *port_i = Local<Number>::Cast(port)->Int32Value();
-            ssh_bind_options_set(
-                sshbind,
-                SSH_BIND_OPTIONS_BINDPORT,
-                port_i
-            );
-        }
-        else if (port->IsString()) {
-            Local<String> s = Local<String>::Cast(port);
-            char *port_s = new char[ s->Length() + 1 ];
-            s->WriteAscii(port_s); // null terminates
-            ssh_bind_options_set(
-                sshbind,
-                SSH_BIND_OPTIONS_BINDPORT_STR,
-                port_s
-            );
-        }
-        else {
-            ThrowException(Exception::TypeError(
-                String::New("port must be a string or integer")
-            ));
-        }
-    }
-    
-    void setHost(Local<Value> hostObj) {
-        if (!hostObj->IsString()) {
-            ThrowException(Exception::TypeError(
-                String::New("host must be a string")
-            ));
-            return;
-        }
-        
-        Local<String> host = Local<String>::Cast(hostObj);
-        char *host_s = new char[ host->Length() + 1 ];
-        host->WriteAscii(host_s);
-        
+extern "C" void init(Handle<Object> target) {
+    HandleScope scope;
+    SSHD::Initialize(target);
+}
+
+void SSHD::setPort(Local<Value> port) {
+    if (port->IsNumber()) {
+        int32_t *port_i = new int32_t;
+        *port_i = Local<Number>::Cast(port)->Int32Value();
         ssh_bind_options_set(
             sshbind,
-            SSH_BIND_OPTIONS_BINDADDR,
-            host_s
+            SSH_BIND_OPTIONS_BINDPORT,
+            port_i
         );
     }
-    
-    static void Initialize(Handle<Object> & target) {
-        HandleScope scope;
-        
-        Local<FunctionTemplate> t = FunctionTemplate::New(Server);
-        constructor_template = Persistent<FunctionTemplate>::New(t);
-        constructor_template->Inherit(EventEmitter::constructor_template);
-        constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-        constructor_template->SetClassName(String::NewSymbol("Server"));
-        
-        NODE_SET_PROTOTYPE_METHOD(constructor_template, "listen", Listen);
-        NODE_SET_PROTOTYPE_METHOD(constructor_template, "close", Close);
-        target->Set(
-            String::NewSymbol("Server"),
-            constructor_template->GetFunction()
+    else if (port->IsString()) {
+        Local<String> s = Local<String>::Cast(port);
+        char *port_s = new char[ s->Length() + 1 ];
+        s->WriteAscii(port_s); // null terminates
+        ssh_bind_options_set(
+            sshbind,
+            SSH_BIND_OPTIONS_BINDPORT_STR,
+            port_s
         );
     }
-    
-    static Handle<Value> Server(const Arguments &args);
-    static Handle<Value> Listen(const Arguments &args);
-    static Handle<Value> Close(const Arguments &args);
-    
-    static int Accept(eio_req *);
-    static int Accept_After(eio_req *);
-    static int Message(eio_req *);
-    static int Message_After(eio_req *);
-};
+    else {
+        ThrowException(Exception::TypeError(
+            String::New("port must be a string or integer")
+        ));
+    }
+}
 
-Persistent<FunctionTemplate> SSHD::constructor_template;
+void SSHD::setHost(Local<Value> hostObj) {
+    if (!hostObj->IsString()) {
+        ThrowException(Exception::TypeError(
+            String::New("host must be a string")
+        ));
+        return;
+    }
+    
+    Local<String> host = Local<String>::Cast(hostObj);
+    char *host_s = new char[ host->Length() + 1 ];
+    host->WriteAscii(host_s);
+    
+    ssh_bind_options_set(
+        sshbind,
+        SSH_BIND_OPTIONS_BINDADDR,
+        host_s
+    );
+}
+
+void SSHD::Initialize(Handle<Object> & target) {
+    HandleScope scope;
+    
+    Local<FunctionTemplate> t = FunctionTemplate::New(Server);
+    constructor_template = Persistent<FunctionTemplate>::New(t);
+    constructor_template->Inherit(EventEmitter::constructor_template);
+    constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
+    constructor_template->SetClassName(String::NewSymbol("Server"));
+    
+    NODE_SET_PROTOTYPE_METHOD(constructor_template, "listen", Listen);
+    NODE_SET_PROTOTYPE_METHOD(constructor_template, "close", Close);
+    target->Set(
+        String::NewSymbol("Server"),
+        constructor_template->GetFunction()
+    );
+}
 
 struct Dispatch {
     ssh_message message;
@@ -217,9 +194,4 @@ int SSHD::Message_After(eio_req *req) {
         eio_custom(Message, EIO_PRI_DEFAULT, Message_After, d);
         ev_ref(EV_DEFAULT_UC);
     }
-}
-
-extern "C" void init(Handle<Object> target) {
-    HandleScope scope;
-    SSHD::Initialize(target);
 }

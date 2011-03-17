@@ -26,7 +26,7 @@ def configure(conf):
 def build(bld):
     sshd = bld.new_task_gen('cxx', 'shlib', 'node_addon')
     sshd.target = 'sshd'
-    sshd.source = [ 'sshd.cc' ]
+    sshd.source = [ 'src/sshd.cc' ]
     sshd.cxxflags = [ '-D_FILE_OFFSET_BITS=64', '-D_LARGEFILE_SOURCE' ]
     sshd.cxxflags.append(
         os.popen('pkg-config --cflags libssh').readline().strip()
