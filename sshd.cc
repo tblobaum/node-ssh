@@ -1,5 +1,6 @@
 #include <node.h>
 #include <node_object_wrap.h>
+#include <node_events.h>
 #include <v8.h>
 
 #include <cerrno>
@@ -10,9 +11,9 @@
 using namespace v8;
 using namespace node;
 
-class SSHD : ObjectWrap {
+class SSHD : EventEmitter {
 private:
-    static Persistent<FunctionTemplate> ct;
+    static Persistent<FunctionTemplate> constructor_template;
     
 protected:
     static Handle<Value> New(const Arguments &args);
@@ -72,15 +73,18 @@ public:
     static void Initialize(Handle<Object> & target) {
         HandleScope scope;
         
-        Persistent<FunctionTemplate> ct;
         Local<FunctionTemplate> t = FunctionTemplate::New(Server);
-        ct = Persistent<FunctionTemplate>::New(t);
-        ct->InstanceTemplate()->SetInternalFieldCount(1);
-        ct->SetClassName(String::NewSymbol("Server"));
+        constructor_template = Persistent<FunctionTemplate>::New(t);
+        constructor_template->Inherit(EventEmitter::constructor_template);
+        constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
+        constructor_template->SetClassName(String::NewSymbol("Server"));
         
-        NODE_SET_PROTOTYPE_METHOD(ct, "listen", Listen);
-        NODE_SET_PROTOTYPE_METHOD(ct, "close", Close);
-        target->Set(String::NewSymbol("Server"), ct->GetFunction());
+        NODE_SET_PROTOTYPE_METHOD(constructor_template, "listen", Listen);
+        NODE_SET_PROTOTYPE_METHOD(constructor_template, "close", Close);
+        target->Set(
+            String::NewSymbol("Server"),
+            constructor_template->GetFunction()
+        );
     }
     
     static Handle<Value> Server(const Arguments &args);
@@ -93,7 +97,7 @@ public:
     static int Message_After(eio_req *);
 };
 
-Persistent<FunctionTemplate> SSHD::ct;
+Persistent<FunctionTemplate> SSHD::constructor_template;
 
 struct Dispatch {
     ssh_message message;
