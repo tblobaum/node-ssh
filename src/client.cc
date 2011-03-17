@@ -1,5 +1,4 @@
 #include "client.h"
-#include "sshd.h"
 
 static int accept(eio_req *);
 static int acceptAfter(eio_req *);
@@ -15,7 +14,6 @@ void Client::Initialize() {
     constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
     constructor_template->SetClassName(String::NewSymbol("Client"));
     
-    messageSymbol = NODE_PSYMBOL("message");
     NODE_SET_PROTOTYPE_METHOD(constructor_template, "end", End);
 }
 
@@ -36,25 +34,26 @@ int Client::Message(eio_req *req) {
     Client *client = (Client *) req->data;
     
     ssh_message msg = ssh_message_get(client->session);
-    client->messageQueue->push_back(msg);
+    client->messageQueue.push_back(msg);
     
     return 0;
 }
 
-int Client::Message_After(eio_req *req) {
+int Client::MessageAfter(eio_req *req) {
     HandleScope scope;
     Client *client = (Client *) req->data;
     
-    eio_custom(Message, EIO_PRI_DEFAULT, Message_After, client);
+    eio_custom(Message, EIO_PRI_DEFAULT, MessageAfter, client);
     ev_ref(EV_DEFAULT_UC);
     
-    while (!client->messageQueue->empty()) {
-        ssh_message msg = client->messageQueue->front();
-        client->messageQueue->pop_front();
+    while (!client->messageQueue.empty()) {
+        ssh_message msg = client->messageQueue.front();
+        client->messageQueue.pop_front();
         
         Handle<Value> argv[1];
-        argv[0] = Integer::New(msg->type);
-        client->Emit(messageSymbol, 1, argv);
+        argv[0] = Integer::New(ssh_message_type(msg));
+
+        client->Emit(String::NewSymbol("message"), 1, argv);
     }
     
     return 0;

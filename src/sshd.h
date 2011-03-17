@@ -39,6 +39,4 @@ public:
     static Persistent<String> sessionSymbol;
 };
 
-Persistent<FunctionTemplate> SSHD::constructor_template;
-
 #endif

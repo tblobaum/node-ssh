@@ -17,7 +17,7 @@ using namespace node;
 
 struct Client : EventEmitter {
     ssh_session session;
-    std::deque<ssh_message *> messageQueue;
+    std::deque<ssh_message> messageQueue;
     Client();
     
     static Persistent<FunctionTemplate> constructor_template;
@@ -28,10 +28,6 @@ struct Client : EventEmitter {
     
     static int Message(eio_req *);
     static int MessageAfter(eio_req *);
-    
-    static Persistent<String> messageSymbol;
 };
-
-Persistent<FunctionTemplate> Client::constructor_template;
-
+    
 #endif

@@ -1,11 +1,6 @@
 #include "sshd.h"
 #include "client.h"
 
-extern "C" void init(Handle<Object> target) {
-    HandleScope scope;
-    SSHD::Initialize(target);
-}
-
 void SSHD::setPort(Local<Value> port) {
     if (port->IsNumber()) {
         int32_t *port_i = new int32_t;
