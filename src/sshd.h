@@ -25,7 +25,6 @@ protected:
 public:
     ssh_bind sshbind;
     bool closed;
-    
     SSHD(const Arguments &);
     
     void setPort(Local<Value>);
@@ -36,9 +35,8 @@ public:
     static Handle<Value> Close(const Arguments &args);
     
     static int Accept(eio_req *);
-    static int Accept_After(eio_req *);
-    static int Message(eio_req *);
-    static int Message_After(eio_req *);
+    static int AcceptAfter(eio_req *);
+    static Persistent<String> sessionSymbol;
 };
 
 Persistent<FunctionTemplate> SSHD::constructor_template;

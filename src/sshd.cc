@@ -1,4 +1,5 @@
 #include "sshd.h"
+#include "client.h"
 
 extern "C" void init(Handle<Object> target) {
     HandleScope scope;
@@ -58,27 +59,24 @@ void SSHD::Initialize(Handle<Object> & target) {
     constructor_template = Persistent<FunctionTemplate>::New(t);
     constructor_template->Inherit(EventEmitter::constructor_template);
     constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-    constructor_template->SetClassName(String::NewSymbol("Server"));
     
+    constructor_template->SetClassName(String::NewSymbol("Server"));
     NODE_SET_PROTOTYPE_METHOD(constructor_template, "listen", Listen);
     NODE_SET_PROTOTYPE_METHOD(constructor_template, "close", Close);
+    
+    sessionSymbol = NODE_PSYMBOL("session");
+    
     target->Set(
         String::NewSymbol("Server"),
         constructor_template->GetFunction()
     );
-}
-
-struct Dispatch {
-    ssh_message message;
-    ssh_session session;
-    SSHD *server;
     
-    Dispatch(SSHD *sshd) {
-        message = NULL;
-        server = sshd;
-        session = ssh_new();
-    }
-};
+    Client::Initialize();
+    target->Set(
+        String::NewSymbol("Client"),
+        Client::constructor_template->GetFunction()
+    );
+}
 
 SSHD::SSHD(const Arguments &args) {
     closed = false;
@@ -132,11 +130,42 @@ Handle<Value> SSHD::Listen(const Arguments &args) {
         );
     }
     
-    Dispatch *d = new Dispatch(sshd);
-    eio_custom(Accept, EIO_PRI_DEFAULT, Accept_After, d);
+    eio_custom(Accept, EIO_PRI_DEFAULT, AcceptAfter, sshd);
     ev_ref(EV_DEFAULT_UC);
     
     return args.This();
+}
+
+int SSHD::Accept (eio_req *req) {
+    SSHD *server = (SSHD *) req->data;
+    Client client;
+    int r = ssh_bind_accept(server->sshbind, client.session);
+    if (r == SSH_ERROR) return 1;
+    if (ssh_handle_key_exchange(client.session)) return 1;
+    
+    return 0;
+}
+
+int SSHD::AcceptAfter (eio_req *req) {
+    SSHD *server = (SSHD *) req->data;
+    
+    if (!server->closed) {
+        eio_custom(Accept, EIO_PRI_DEFAULT, AcceptAfter, server);
+        ev_ref(EV_DEFAULT_UC);
+    }
+    
+    Handle<Object> clientObj = Client::constructor_template
+        ->GetFunction()->NewInstance();
+    
+    Client *client = ObjectWrap::Unwrap<Client>(clientObj);
+    
+    Handle<Value> argv[1];
+    argv[0] = clientObj;
+    
+    server->Emit(sessionSymbol, 1, argv);
+    
+    eio_custom(Client::Message, EIO_PRI_DEFAULT, Client::MessageAfter, client);
+    ev_ref(EV_DEFAULT_UC);
 }
 
 Handle<Value> SSHD::Close(const Arguments &args) {
@@ -144,46 +173,4 @@ Handle<Value> SSHD::Close(const Arguments &args) {
     SSHD *sshd = ObjectWrap::Unwrap<SSHD>(args.This());
     sshd->closed = true;
     return args.This();
-}
-
-int SSHD::Accept(eio_req *req) {
-    Dispatch *d = (Dispatch *) req->data;
-    SSHD *sshd = d->server;
-    
-    int r = ssh_bind_accept(sshd->sshbind, d->session);
-    if (r == SSH_ERROR) return 1;
-    if (ssh_handle_key_exchange(d->session)) return 1;
-    
-    return 0;
-}
-
-int SSHD::Accept_After(eio_req *req) {
-    HandleScope scope;
-    SSHD *sshd = (SSHD *) req->data;
-    Dispatch *d = new Dispatch(sshd);
-    
-    eio_custom(Message, EIO_PRI_DEFAULT, Message_After, d);
-    ev_ref(EV_DEFAULT_UC);
-    
-    if (!sshd->closed) {
-        eio_custom(Accept, EIO_PRI_DEFAULT, Accept_After, sshd);
-        ev_ref(EV_DEFAULT_UC);
-    }
-    return 0;
-}
-
-int SSHD::Message(eio_req *req) {
-    Dispatch *d = (Dispatch *) req->data;
-    d->message = ssh_message_get(d->session);
-    
-    return 0;
-}
-
-int SSHD::Message_After(eio_req *req) {
-    Dispatch *d = (Dispatch *) req->data;
-    
-    if (d->message) {
-        eio_custom(Message, EIO_PRI_DEFAULT, Message_After, d);
-        ev_ref(EV_DEFAULT_UC);
-    }
 }
