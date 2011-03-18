@@ -4,7 +4,7 @@
 struct ClientServerPair {
     SSHD *server;
     Client *client;
-    Handle<Object> clientObj;
+    Persistent<Object> clientObj;
 };
 
 void SSHD::setPort(Local<Value> port) {
@@ -137,9 +137,12 @@ Handle<Value> SSHD::Listen(const Arguments &args) {
     ClientServerPair *pair = new ClientServerPair;
     
     pair->server = sshd;
-    pair->clientObj = Client::constructor_template
-        ->GetFunction()->NewInstance();
+    
+    pair->clientObj = Persistent<Object>::New(
+        Client::constructor_template->GetFunction()->NewInstance()
+    );
     pair->client = ObjectWrap::Unwrap<Client>(pair->clientObj);
+    pair->client->Ref();
     
     eio_custom(Accept, EIO_PRI_DEFAULT, AcceptAfter, pair);
     ev_ref(EV_DEFAULT_UC);
@@ -184,7 +187,13 @@ int SSHD::AcceptAfter (eio_req *req) {
     ev_ref(EV_DEFAULT_UC);
     
     if (!server->closed) {
-        eio_custom(Accept, EIO_PRI_DEFAULT, AcceptAfter, server);
+        pair->clientObj = Persistent<Object>::New(
+            Client::constructor_template->GetFunction()->NewInstance()
+        );
+        pair->client = ObjectWrap::Unwrap<Client>(pair->clientObj);
+        pair->client->Ref();
+        
+        eio_custom(Accept, EIO_PRI_DEFAULT, AcceptAfter, pair);
         ev_ref(EV_DEFAULT_UC);
     }
 }

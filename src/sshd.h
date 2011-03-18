@@ -1,6 +1,7 @@
 #ifndef NODE_SSH_SSHD_H
 #define NODE_SSH_SSHD_H
 
+#define protected public
 #include <node.h>
 #include <node_object_wrap.h>
 #include <node_events.h>
