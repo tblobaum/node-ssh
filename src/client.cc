@@ -35,7 +35,11 @@ Client::Client() {
 int Client::Message(eio_req *req) {
     Client *client = (Client *) req->data;
     
+printf("get...\n");
+fflush(stdout);
     ssh_message msg = ssh_message_get(client->session);
+printf("push %d\n", ssh_message_type(msg));
+fflush(stdout);
     client->messageQueue.push_back(msg);
     
     return 0;
@@ -47,9 +51,13 @@ int Client::MessageAfter(eio_req *req) {
     
     eio_custom(Message, EIO_PRI_DEFAULT, MessageAfter, client);
     ev_ref(EV_DEFAULT_UC);
+printf("messageQueue.length = %d\n", client->messageQueue.size());
+fflush(stdout);
     
     while (!client->messageQueue.empty()) {
         ssh_message msg = client->messageQueue.front();
+printf("emit %d\n", ssh_message_type(msg));
+fflush(stdout);
         client->messageQueue.pop_front();
         
         Handle<Value> argv[1];

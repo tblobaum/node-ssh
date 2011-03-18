@@ -1,6 +1,12 @@
 #include "sshd.h"
 #include "client.h"
 
+struct ClientServerPair {
+    SSHD *server;
+    Client *client;
+    Handle<Object> clientObj;
+};
+
 void SSHD::setPort(Local<Value> port) {
     if (port->IsNumber()) {
         int32_t *port_i = new int32_t;
@@ -128,42 +134,59 @@ Handle<Value> SSHD::Listen(const Arguments &args) {
         );
     }
     
-    eio_custom(Accept, EIO_PRI_DEFAULT, AcceptAfter, sshd);
+    ClientServerPair *pair = new ClientServerPair;
+    
+    pair->server = sshd;
+    pair->clientObj = Client::constructor_template
+        ->GetFunction()->NewInstance();
+    pair->client = ObjectWrap::Unwrap<Client>(pair->clientObj);
+    
+    eio_custom(Accept, EIO_PRI_DEFAULT, AcceptAfter, pair);
     ev_ref(EV_DEFAULT_UC);
     
     return args.This();
 }
 
 int SSHD::Accept (eio_req *req) {
-    SSHD *server = (SSHD *) req->data;
-    Client client;
-    int r = ssh_bind_accept(server->sshbind, client.session);
-    if (r == SSH_ERROR) return 1;
-    if (ssh_handle_key_exchange(client.session)) return 1;
+    ClientServerPair *pair = (ClientServerPair *) req->data;
+    SSHD *server = pair->server;
+    Client *client = pair->client;
+    
+    int r = ssh_bind_accept(server->sshbind, client->session);
+    if (r == SSH_ERROR) {
+        fprintf(stderr,
+            "Error accepting a connection: %s\n",
+            ssh_get_error(server->sshbind)
+        );
+        return 1;
+    }
+    if (ssh_handle_key_exchange(client->session)) {
+        fprintf(stderr,
+            "Error handling key exchange: %s\n",
+            ssh_get_error(server->sshbind)
+        );
+        return 1;
+    }
     
     return 0;
 }
 
 int SSHD::AcceptAfter (eio_req *req) {
-    SSHD *server = (SSHD *) req->data;
+    ClientServerPair *pair = (ClientServerPair *) req->data;
+    SSHD *server = pair->server;
+    Client *client = pair->client;
+    
+    Handle<Value> argv[1];
+    argv[0] = pair->clientObj;
+    server->Emit(sessionSymbol, 1, argv);
+    
+    eio_custom(Client::Message, EIO_PRI_DEFAULT, Client::MessageAfter, client);
+    ev_ref(EV_DEFAULT_UC);
     
     if (!server->closed) {
         eio_custom(Accept, EIO_PRI_DEFAULT, AcceptAfter, server);
         ev_ref(EV_DEFAULT_UC);
     }
-    
-    Handle<Object> clientObj = Client::constructor_template
-        ->GetFunction()->NewInstance();
-    
-    Client *client = ObjectWrap::Unwrap<Client>(clientObj);
-    
-    Handle<Value> argv[1];
-    argv[0] = clientObj;
-    
-    server->Emit(sessionSymbol, 1, argv);
-    
-    eio_custom(Client::Message, EIO_PRI_DEFAULT, Client::MessageAfter, client);
-    ev_ref(EV_DEFAULT_UC);
 }
 
 Handle<Value> SSHD::Close(const Arguments &args) {
