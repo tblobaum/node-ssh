@@ -1,5 +1,6 @@
 #include "sshd.h"
 #include "client.h"
+#include "constants.h"
 
 struct ClientServerPair {
     SSHD *server;
@@ -77,6 +78,8 @@ void SSHD::Initialize(Handle<Object> & target) {
         String::NewSymbol("Client"),
         Client::constructor_template->GetFunction()
     );
+    
+    target->Set(String::NewSymbol("constants"), Constants());
 }
 
 Persistent<String> SSHD::sessionSymbol;
