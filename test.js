@@ -5,6 +5,7 @@ server.listen(6060);
 server.on('session', function (s) {
     console.log('got session!');
     
+    var authed = false;
     s.on('message', function (m) {
         console.log('message!');
         console.dir(m);
@@ -14,6 +15,7 @@ console.dir([ m.subtype, sshd.constants.SSH_AUTH_METHOD_PASSWORD ]);
             if (m.subtype == sshd.constants.SSH_AUTH_METHOD_PASSWORD) {
                 if (m.user === 'foo' && m.password === 'bar') {
                     m.authReplySuccess();
+                    authed = true;
                     console.log('auth success!');
                 }
                 else {
@@ -25,6 +27,20 @@ console.dir([ m.subtype, sshd.constants.SSH_AUTH_METHOD_PASSWORD ]);
                 m.authSetMethods(sshd.constants.SSH_AUTH_METHOD_PASSWORD);
                 m.replyDefault();
             }
+        }
+        else if (!authed) {
+            m.replyDefault()
+        }
+        else if (m.type === sshd.constants.SSH_REQUEST_CHANNEL_OPEN) {
+            console.log('channel!');
+            var ch = m.openChannel();
+            ch.on('data', function (buf) {
+                console.log('Got data!');
+                console.log(buf);
+            });
+            ch.on('end', function () {
+                console.log('channel ended');
+            });
         }
         else {
             m.replyDefault()
