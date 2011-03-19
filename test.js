@@ -12,7 +12,14 @@ server.on('session', function (s) {
 console.log('SSH_REQUEST_AUTH!!!');
 console.dir([ m.subtype, sshd.constants.SSH_AUTH_METHOD_PASSWORD ]);
             if (m.subtype == sshd.constants.SSH_AUTH_METHOD_PASSWORD) {
-                console.log('woooo!');
+                if (m.user === 'foo' && m.password === 'bar') {
+                    m.authReplySuccess();
+                    console.log('auth success!');
+                }
+                else {
+                    m.replyDefault();
+                    console.log('auth failure!');
+                }
             }
             else {
                 m.authSetMethods(sshd.constants.SSH_AUTH_METHOD_PASSWORD);

@@ -41,6 +41,9 @@ void Msg::Initialize() {
     NODE_SET_PROTOTYPE_METHOD(
         constructor_template, "authSetMethods", AuthSetMethods
     );
+    NODE_SET_PROTOTYPE_METHOD(
+        constructor_template, "authReplySuccess", AuthReplySuccess
+    );
 }
 
 Handle<Value> Msg::New(const Arguments &args) {
@@ -71,4 +74,18 @@ Handle<Value> Msg::AuthSetMethods(const Arguments &args) {
             String::New("methods must be an integer")
         ));
     }
+}
+
+Handle<Value> Msg::AuthReplySuccess(const Arguments &args) {
+    ssh_message msg = ObjectWrap::Unwrap<Msg>(args.This())->message;
+    if (args[0]->IsUndefined()) {
+        ssh_message_auth_reply_success(msg, 0);
+    }
+    else {
+        ssh_message_auth_reply_success(
+            msg,
+            Local<Number>::Cast(args[0])->Int32Value()
+        );
+    }
+    ssh_message_free(msg);
 }

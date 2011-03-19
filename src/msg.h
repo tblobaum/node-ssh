@@ -25,6 +25,7 @@ public:
     static Handle<Value> New(const Arguments &);
     static Handle<Value> ReplyDefault(const Arguments &);
     static Handle<Value> AuthSetMethods(const Arguments &);
+    static Handle<Value> AuthReplySuccess(const Arguments &);
     static void Initialize();
 };
     
