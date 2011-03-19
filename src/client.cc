@@ -55,7 +55,9 @@ int Client::GetMessageAfter(eio_req *req) {
         Persistent<Object> msgObj = Persistent<Object>::New(
             Msg::constructor_template->GetFunction()->NewInstance()
         );
-        ObjectWrap::Unwrap<Msg>(msgObj)->prepare(msg, msgObj);
+        Msg *m = ObjectWrap::Unwrap<Msg>(msgObj);
+        m->prepare(msg, msgObj);
+        m->Ref();
         
         Handle<Value> argv[1];
         argv[0] = msgObj;

@@ -24,6 +24,7 @@ public:
     static Persistent<FunctionTemplate> constructor_template;
     static Handle<Value> New(const Arguments &);
     static Handle<Value> ReplyDefault(const Arguments &);
+    static Handle<Value> AuthSetMethods(const Arguments &);
     static void Initialize();
 };
     
