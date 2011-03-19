@@ -1,5 +1,7 @@
 #include "client.h"
 
+Persistent<FunctionTemplate> Client::constructor_template;
+    
 static int accept(eio_req *);
 static int acceptAfter(eio_req *);
 static int message(eio_req *);
@@ -17,8 +19,6 @@ void Client::Initialize() {
     NODE_SET_PROTOTYPE_METHOD(constructor_template, "end", End);
 }
 
-Persistent<FunctionTemplate> Client::constructor_template;
-
 Handle<Value> Client::New(const Arguments &args) {
     HandleScope scope;
     
@@ -32,36 +32,34 @@ Client::Client() {
     session = ssh_new();
 }
 
-int Client::Message(eio_req *req) {
+int Client::GetMessage(eio_req *req) {
     Client *client = (Client *) req->data;
     
-printf("get...\n");
-fflush(stdout);
     ssh_message msg = ssh_message_get(client->session);
-printf("push %d\n", ssh_message_type(msg));
-fflush(stdout);
     client->messageQueue.push_back(msg);
     
     return 0;
 }
 
-int Client::MessageAfter(eio_req *req) {
+int Client::GetMessageAfter(eio_req *req) {
     HandleScope scope;
     Client *client = (Client *) req->data;
     
-    eio_custom(Message, EIO_PRI_DEFAULT, MessageAfter, client);
+    eio_custom(GetMessage, EIO_PRI_DEFAULT, GetMessageAfter, client);
     ev_ref(EV_DEFAULT_UC);
-printf("messageQueue.length = %d\n", client->messageQueue.size());
-fflush(stdout);
     
     while (!client->messageQueue.empty()) {
         ssh_message msg = client->messageQueue.front();
-printf("emit %d\n", ssh_message_type(msg));
-fflush(stdout);
         client->messageQueue.pop_front();
         
+        Persistent<Object> msgObj = Persistent<Object>::New(
+            Msg::constructor_template->GetFunction()->NewInstance()
+        );
+        Msg *m = ObjectWrap::Unwrap<Msg>(msgObj);
+        m->message = msg;
+        
         Handle<Value> argv[1];
-        argv[0] = Integer::New(ssh_message_type(msg));
+        argv[0] = msgObj;
         
         client->Emit(String::NewSymbol("message"), 1, argv);
     }

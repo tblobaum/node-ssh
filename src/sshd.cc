@@ -2,6 +2,9 @@
 #include "client.h"
 #include "constants.h"
 
+Persistent<FunctionTemplate> SSHD::constructor_template;
+Persistent<String> SSHD::sessionSymbol;
+
 struct ClientServerPair {
     SSHD *server;
     Client *client;
@@ -79,11 +82,14 @@ void SSHD::Initialize(Handle<Object> & target) {
         Client::constructor_template->GetFunction()
     );
     
+    Msg::Initialize();
+    target->Set(
+        String::NewSymbol("Message"),
+        Msg::constructor_template->GetFunction()
+    );
+    
     target->Set(String::NewSymbol("constants"), Constants());
 }
-
-Persistent<String> SSHD::sessionSymbol;
-Persistent<FunctionTemplate> SSHD::constructor_template;
 
 SSHD::SSHD(const Arguments &args) {
     closed = false;
@@ -186,7 +192,12 @@ int SSHD::AcceptAfter (eio_req *req) {
     argv[0] = pair->clientObj;
     server->Emit(sessionSymbol, 1, argv);
     
-    eio_custom(Client::Message, EIO_PRI_DEFAULT, Client::MessageAfter, client);
+    eio_custom(
+        Client::GetMessage,
+        EIO_PRI_DEFAULT,
+        Client::GetMessageAfter,
+        client
+    );
     ev_ref(EV_DEFAULT_UC);
     
     if (!server->closed) {
