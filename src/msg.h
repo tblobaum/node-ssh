@@ -18,12 +18,12 @@ using namespace node;
 class Msg : public ObjectWrap {
 public:
     ssh_message message;
-    
-    Msg(ssh_message);
     Msg();
+    void prepare(ssh_message, Persistent<Object>);
     
     static Persistent<FunctionTemplate> constructor_template;
     static Handle<Value> New(const Arguments &);
+    static Handle<Value> ReplyDefault(const Arguments &);
     static void Initialize();
 };
     
