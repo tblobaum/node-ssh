@@ -12,6 +12,8 @@
 #include <libssh/server.h>
 #include <libssh/callbacks.h>
 
+#include "chan.h"
+
 using namespace v8;
 using namespace node;
 
@@ -26,6 +28,7 @@ public:
     static Handle<Value> ReplyDefault(const Arguments &);
     static Handle<Value> AuthSetMethods(const Arguments &);
     static Handle<Value> AuthReplySuccess(const Arguments &);
+    static Handle<Value> OpenChannel(const Arguments &);
     static void Initialize();
 };
     

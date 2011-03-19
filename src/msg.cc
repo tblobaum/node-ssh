@@ -25,6 +25,8 @@ void Msg::prepare(ssh_message msg, Persistent<Object> target) {
             );
         }
     }
+    else if (type == SSH_REQUEST_CHANNEL_OPEN) {
+    }
 }
 
 void Msg::Initialize() {
@@ -44,6 +46,9 @@ void Msg::Initialize() {
     NODE_SET_PROTOTYPE_METHOD(
         constructor_template, "authReplySuccess", AuthReplySuccess
     );
+    NODE_SET_PROTOTYPE_METHOD(
+        constructor_template, "openChannel", OpenChannel
+    );
 }
 
 Handle<Value> Msg::New(const Arguments &args) {
@@ -59,6 +64,8 @@ Handle<Value> Msg::ReplyDefault(const Arguments &args) {
     ssh_message msg = ObjectWrap::Unwrap<Msg>(args.This())->message;
     ssh_message_reply_default(msg);
     ssh_message_free(msg);
+    
+    return args.This();
 }
 
 Handle<Value> Msg::AuthSetMethods(const Arguments &args) {
@@ -74,6 +81,7 @@ Handle<Value> Msg::AuthSetMethods(const Arguments &args) {
             String::New("methods must be an integer")
         ));
     }
+    return args.This();
 }
 
 Handle<Value> Msg::AuthReplySuccess(const Arguments &args) {
@@ -88,4 +96,15 @@ Handle<Value> Msg::AuthReplySuccess(const Arguments &args) {
         );
     }
     ssh_message_free(msg);
+    return args.This();
+}
+
+Handle<Value> Msg::OpenChannel(const Arguments &args) {
+    ssh_message msg = ObjectWrap::Unwrap<Msg>(args.This())->message;
+    Handle<Value> chanObj = Chan::New(
+        ssh_message_channel_request_open_reply_accept(msg)
+    );
+    ssh_message_free(msg);
+    
+    return chanObj;
 }
