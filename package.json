@@ -1,0 +1,33 @@
+{
+    "name" : "ssh",
+    "version" : "0.0.1",
+    "description" : "Write ssh servers in node.js",
+    "main" : "./index.js",
+    "directories" : {
+        "example" : "./examples"
+    },
+    "repository" : {
+        "type" : "git",
+        "url" : "http://github.com/substack/node-ssh.git"
+    },
+    "keywords" : [
+        "ssh",
+        "sshd",
+        "server"
+    ],
+    "devDependencies" : {
+        "expresso" : ">=0.7.0"
+    },
+    "author" : {
+        "name" : "James Halliday",
+        "email" : "mail@substack.net",
+        "url" : "http://substack.net"
+    },
+    "scripts" : {
+        "test" : "expresso"
+    },
+    "license" : "MIT/X11",
+    "engine" : {
+        "node" : ">=0.4.0"
+    }
+}

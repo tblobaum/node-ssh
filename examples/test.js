@@ -1,4 +1,4 @@
-var sshd = require('./build/default/sshd');
+var sshd = require('../build/default/sshd');
 var server = new sshd.Server({ rsa : '/home/substack/.ssh/id_rsa' });
 server.listen(6060);
 
