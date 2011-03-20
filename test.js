@@ -30,11 +30,9 @@ server.on('session', function (s) {
         }
         else if (m.type === sshd.constants.SSH_REQUEST_CHANNEL_OPEN
         && m.subtype === sshd.constants.SSH_CHANNEL_SESSION) {
-            console.log('channel!');
             var ch = m.openChannel();
             console.dir({ ch : ch });
             ch.on('data', function (buf) {
-                console.log('!!!!!!!!!!!!!!!!!!!!!!! got data!');
                 console.log(buf);
             });
             ch.on('end', function () {
@@ -43,7 +41,6 @@ server.on('session', function (s) {
         }
         else if (m.type === sshd.constants.SSH_REQUEST_CHANNEL
         && m.subtype === sshd.constants.SSH_CHANNEL_REQUEST_SHELL) {
-console.log("reply success!");
             m.channelReplySuccess();
         }
         else {

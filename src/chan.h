@@ -2,6 +2,7 @@
 #define NODE_SSH_CHAN_H
 
 #define protected public
+#define private public
 
 #include <node.h>
 #include <node_object_wrap.h>

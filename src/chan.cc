@@ -61,17 +61,16 @@ int Chan::ReadChannelAfter(eio_req *req) {
     
     while (!chan->buffers.empty()) {
         std::pair<int, char *> p = chan->buffers.front();
-        int i = p.first;
-        if (i == 0) {
+        chan->buffers.pop_front();
+        if (p.first == 0) {
             chan->Emit(String::NewSymbol("end"), 0, NULL);
         }
         else {
-            char *buf = p.second;
-            Handle<Object> bufObj;
-            Buffer::New(p.second, i)->Wrap(bufObj);;
+            Buffer *b = Buffer::New(p.second, p.first);
+            b->Ref();
             
             Handle<Value> argv[1];
-            argv[0] = bufObj;
+            argv[0] = b->handle_;
             chan->Emit(String::NewSymbol("data"), 1, argv);
             delete p.second;
         }
