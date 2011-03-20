@@ -1,12 +1,23 @@
 var sshd = require('./build/default/sshd');
 var constants = sshd.constants;
+var path = require('path');
 
 var exports = module.exports = function (keys) {
     if (keys === undefined) {
-        keys = {
-            rsa : process.env.HOME + '/home/substack/.ssh/id_rsa',
-            dsa : process.env.HOME + '/home/substack/.ssh/id_dsa',
-        };
+        keys = {};
+        var dsaFile = process.env.HOME + '/.ssh/id_dsa';
+        var rsaFile = process.env.HOME + '/.ssh/id_rsa';
+        
+        if (path.existsSync(dsaFile)) {
+            keys.dsa = dsaFile;
+        }
+        else if (path.existsSync(rsaFile)) {
+            keys.rsa = rsaFile;
+        }
+    }
+    
+    if (!keys.dsa && !keys.rsa) {
+        throw new Error('no keys specified');
     }
     
     return {
@@ -23,7 +34,7 @@ var exports = module.exports = function (keys) {
 exports.sshd = sshd;
 
 exports.createServer = function (cb) {
-    return module.exports().createServer(port, host);
+    return module.exports().createServer(cb);
 };
 
 var authNames = {};
@@ -34,10 +45,11 @@ function wrapSession (session) {
     var chan = null;
     
     session.on('message', function (m) {
+console.dir(m);
         if (m.type === constants.SSH_REQUEST_AUTH) {
             var name = authNames[m.subtype];
             if (session._events[name]) {
-                session.emit(m.user, m.password, function (ok) {
+                session.emit('password', m.user, m.password, function (ok) {
                     if (ok) {
                         m.authReplySuccess();
                         authed = true;
@@ -54,7 +66,7 @@ function wrapSession (session) {
                     })
                     .reduce(function (a, b) {
                         return a | b;
-                    })
+                    }, 0)
                 ;
                 m.authSetMethods(methods);
                 m.replyDefault();
@@ -66,7 +78,14 @@ function wrapSession (session) {
         else if (m.type === constants.SSH_REQUEST_CHANNEL_OPEN
         && m.subtype === constants.SSH_CHANNEL_SESSION) {
             chan = m.openChannel();
-            var write = chan.write;
+            var write = chan.write.bind(chan);
+            
+            chan.pause = function () {
+                console.error('TODO: pause\n');
+            };
+            chan.resume = function () {
+                console.error('TODO: resume\n');
+            };
             
             chan.write = function (buf) {
                 if (Buffer.isBuffer(buf)) {
@@ -83,6 +102,7 @@ function wrapSession (session) {
         else if (chan
         && m.type === constants.SSH_REQUEST_CHANNEL
         && m.subtype === constants.SSH_CHANNEL_REQUEST_SHELL) {
+console.log('emit shell!');
             m.channelReplySuccess();
             session.emit('shell', chan);
         }
@@ -92,4 +112,4 @@ function wrapSession (session) {
     });
     
     return session;
-});
+}

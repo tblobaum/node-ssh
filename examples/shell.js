@@ -7,6 +7,9 @@ ssh.createServer(function (session) {
     });
     
     session.on('shell', function (sh) {
-        repl.start('node-ssh $ ', sh);
+        sh.on('data', function (buf) {
+            console.log(buf.toString());
+        });
+        //repl.start('node-ssh $ ', sh);
     });
 }).listen(2222);
