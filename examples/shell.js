@@ -1,5 +1,4 @@
 var ssh = require('ssh');
-var repl = require('repl');
 
 ssh.createServer(function (session) {
     session.on('password', function (user, pass, cb) {
@@ -7,6 +6,6 @@ ssh.createServer(function (session) {
     });
     
     session.on('shell', function (sh) {
-        repl.start('node-ssh $ ', sh);
+        sh.pipe(sh); // echo on
     });
 }).listen(2222);

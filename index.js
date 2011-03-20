@@ -82,6 +82,7 @@ function wrapSession (session) {
             chan.pause = function () {
                 // TODO
             };
+            
             chan.resume = function () {
                 // TODO
             };
@@ -95,6 +96,20 @@ function wrapSession (session) {
                 }
                 else {
                     throw new TypeError('can only write strings and Buffers');
+                }
+            };
+            
+            chan.pipe = function (stream, opts) {
+                if (!opts) opts = {};
+                
+                chan.on('data', function (buf) {
+                    stream.write(buf);
+                });
+                
+                if (opts.end !== false) {
+                    chan.on('end', function () {
+                        stream.end();
+                    });
                 }
             };
         }
