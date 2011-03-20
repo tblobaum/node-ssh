@@ -24,6 +24,8 @@
         "url" : "http://substack.net"
     },
     "scripts" : {
+        "preinstall" : "node-waf configure",
+        "install" : "node-waf build",
         "test" : "expresso"
     },
     "license" : "MIT/X11",
