@@ -9,4 +9,4 @@ ssh.createServer(function (session) {
     session.on('shell', function (sh) {
         repl.start('node-ssh $ ', sh);
     });
-});
+}).listen(2222);

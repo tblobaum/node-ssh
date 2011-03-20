@@ -31,6 +31,7 @@ public:
     static Persistent<FunctionTemplate> constructor_template;
     static Handle<Value> New(const Arguments &);
     static Handle<Value> Create(ssh_channel);
+    static Handle<Value> Write(const Arguments &);
     static void Initialize();
     
     static int ReadChannel(eio_req *);

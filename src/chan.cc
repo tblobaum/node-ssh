@@ -15,6 +15,8 @@ void Chan::Initialize() {
     constructor_template->Inherit(EventEmitter::constructor_template);
     constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
     constructor_template->SetClassName(String::NewSymbol("Channel"));
+    
+    NODE_SET_PROTOTYPE_METHOD(constructor_template, "write", Write);
 }
 
 Handle<Value> Chan::New(const Arguments &args) {
@@ -37,6 +39,22 @@ Handle<Value> Chan::Create(ssh_channel chan) {
     
     eio_custom(ReadChannel, EIO_PRI_DEFAULT, ReadChannelAfter, c);
     return obj;
+}
+
+Handle<Value> Chan::Write(const Arguments &args) {
+    HandleScope scope;
+    
+    Chan *c = ObjectWrap::Unwrap<Chan>(args.This());
+    
+    Buffer *buf = ObjectWrap::Unwrap<Buffer>(
+        Handle<Object>::Cast(args[0])
+    );
+    char *data = Buffer::Data(buf);
+    size_t len = Buffer::Length(buf);
+    
+    ssh_channel_write(c->channel, data, len);
+    
+    return Undefined();
 }
 
 int Chan::ReadChannel(eio_req *req) {
