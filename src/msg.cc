@@ -49,6 +49,9 @@ void Msg::Initialize() {
     NODE_SET_PROTOTYPE_METHOD(
         constructor_template, "openChannel", OpenChannel
     );
+    NODE_SET_PROTOTYPE_METHOD(
+        constructor_template, "channelReplySuccess", ChannelReplySuccess
+    );
 }
 
 Handle<Value> Msg::New(const Arguments &args) {
@@ -107,4 +110,12 @@ Handle<Value> Msg::OpenChannel(const Arguments &args) {
     ssh_message_free(msg);
     
     return chanObj;
+}
+
+Handle<Value> Msg::ChannelReplySuccess(const Arguments &args) {
+    ssh_message msg = ObjectWrap::Unwrap<Msg>(args.This())->message;
+    ssh_message_channel_request_reply_success(msg);
+    ssh_message_free(msg);
+    
+    return args.This();
 }

@@ -29,6 +29,7 @@ public:
     static Handle<Value> AuthSetMethods(const Arguments &);
     static Handle<Value> AuthReplySuccess(const Arguments &);
     static Handle<Value> OpenChannel(const Arguments &);
+    static Handle<Value> ChannelReplySuccess(const Arguments &);
     static void Initialize();
 };
     
