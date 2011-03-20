@@ -33,7 +33,7 @@ server.on('session', function (s) {
             var ch = m.openChannel();
             console.dir({ ch : ch });
             ch.on('data', function (buf) {
-                console.log(buf);
+                console.log(buf.toString());
             });
             ch.on('end', function () {
                 console.log('channel ended');

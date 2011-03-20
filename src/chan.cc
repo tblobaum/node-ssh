@@ -42,8 +42,11 @@ Handle<Value> Chan::Create(ssh_channel chan) {
 int Chan::ReadChannel(eio_req *req) {
     Chan *chan = (Chan *) req->data;
     char *buf = new char[2048];
-    int i = ssh_channel_read(chan->channel, buf, 2048, 0);
-    if (i == 0) chan->done = true;
+    int i = 0;
+    do {
+        i = ssh_channel_read_nonblocking(chan->channel, buf, 2048, 0);
+    } while (i == 0);
+    if (i < 0) chan->done = true;
     
     std::pair<int, char *> pair(i, buf);
     chan->buffers.push_back(pair);
@@ -55,9 +58,6 @@ int Chan::ReadChannelAfter(eio_req *req) {
     HandleScope scope;
     
     Chan *chan = (Chan *) req->data;
-    if (!chan->done) {
-        eio_custom(ReadChannel, EIO_PRI_DEFAULT, ReadChannelAfter, chan);
-    }
     
     while (!chan->buffers.empty()) {
         std::pair<int, char *> p = chan->buffers.front();
@@ -74,6 +74,10 @@ int Chan::ReadChannelAfter(eio_req *req) {
             chan->Emit(String::NewSymbol("data"), 1, argv);
             delete p.second;
         }
+    }
+    
+    if (!chan->done) {
+        eio_custom(ReadChannel, EIO_PRI_DEFAULT, ReadChannelAfter, chan);
     }
     
     return 0;
