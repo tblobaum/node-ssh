@@ -2,9 +2,9 @@
 
 Persistent<FunctionTemplate> Chan::constructor_template;
 
-Chan::Chan(ssh_channel chan) {
-    channel = chan;
+Chan::Chan() {
     done = false;
+    channel = NULL;
 }
 
 void Chan::Initialize() {
@@ -12,28 +12,30 @@ void Chan::Initialize() {
     
     Local<FunctionTemplate> t = FunctionTemplate::New(New);
     constructor_template = Persistent<FunctionTemplate>::New(t);
-    constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
     constructor_template->Inherit(EventEmitter::constructor_template);
+    constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
     constructor_template->SetClassName(String::NewSymbol("Channel"));
 }
 
 Handle<Value> Chan::New(const Arguments &args) {
     HandleScope scope;
     
+    Chan *chan = new Chan();
+    chan->Wrap(args.This());
+    
     return args.This();
 }
 
-Handle<Value> Chan::New(ssh_channel chan) {
+Handle<Value> Chan::Create(ssh_channel chan) {
     HandleScope scope;
     
-    Chan *c = new Chan(chan);
-    Local<Object> obj = Chan::constructor_template
+    Handle<Object> obj = Chan::constructor_template
         ->GetFunction()->NewInstance();
-    c->Wrap(obj);
+    Chan *c = ObjectWrap::Unwrap<Chan>(obj);
+    c->channel = chan;
+    c->Ref();
     
     eio_custom(ReadChannel, EIO_PRI_DEFAULT, ReadChannelAfter, c);
-    
-    //obj->Ref();
     return obj;
 }
 

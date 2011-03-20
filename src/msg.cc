@@ -101,7 +101,7 @@ Handle<Value> Msg::AuthReplySuccess(const Arguments &args) {
 
 Handle<Value> Msg::OpenChannel(const Arguments &args) {
     ssh_message msg = ObjectWrap::Unwrap<Msg>(args.This())->message;
-    Handle<Value> chanObj = Chan::New(
+    Handle<Value> chanObj = Chan::Create(
         ssh_message_channel_request_open_reply_accept(msg)
     );
     ssh_message_free(msg);

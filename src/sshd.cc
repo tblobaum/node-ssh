@@ -88,6 +88,8 @@ void SSHD::Initialize(Handle<Object> & target) {
         Msg::constructor_template->GetFunction()
     );
     
+    Chan::Initialize();
+    
     target->Set(String::NewSymbol("constants"), Constants());
 }
 

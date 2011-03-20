@@ -34,6 +34,7 @@ console.dir([ m.subtype, sshd.constants.SSH_AUTH_METHOD_PASSWORD ]);
         else if (m.type === sshd.constants.SSH_REQUEST_CHANNEL_OPEN) {
             console.log('channel!');
             var ch = m.openChannel();
+            console.dir({ ch : ch });
             ch.on('data', function (buf) {
                 console.log('Got data!');
                 console.log(buf);

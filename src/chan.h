@@ -25,11 +25,11 @@ public:
     std::deque< std::pair<int, char *> > buffers;
     bool done;
     
-    Chan(ssh_channel);
+    Chan();
     
     static Persistent<FunctionTemplate> constructor_template;
     static Handle<Value> New(const Arguments &);
-    static Handle<Value> New(ssh_channel);
+    static Handle<Value> Create(ssh_channel);
     static void Initialize();
     
     static int ReadChannel(eio_req *);
