@@ -45,12 +45,10 @@ Handle<Value> Chan::Write(const Arguments &args) {
     HandleScope scope;
     
     Chan *c = ObjectWrap::Unwrap<Chan>(args.This());
+    Handle<Object> bufObj = Handle<Object>::Cast(args[0]);
     
-    Buffer *buf = ObjectWrap::Unwrap<Buffer>(
-        Handle<Object>::Cast(args[0])
-    );
-    char *data = Buffer::Data(buf);
-    size_t len = Buffer::Length(buf);
+    char *data = Buffer::Data(bufObj);
+    size_t len = Buffer::Length(bufObj);
     
     ssh_channel_write(c->channel, data, len);
     

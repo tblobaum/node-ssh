@@ -45,7 +45,6 @@ function wrapSession (session) {
     var chan = null;
     
     session.on('message', function (m) {
-console.dir(m);
         if (m.type === constants.SSH_REQUEST_AUTH) {
             var name = authNames[m.subtype];
             if (session._events[name]) {
@@ -81,10 +80,10 @@ console.dir(m);
             var write = chan.write.bind(chan);
             
             chan.pause = function () {
-                console.error('TODO: pause\n');
+                // TODO
             };
             chan.resume = function () {
-                console.error('TODO: resume\n');
+                // TODO
             };
             
             chan.write = function (buf) {
@@ -102,7 +101,6 @@ console.dir(m);
         else if (chan
         && m.type === constants.SSH_REQUEST_CHANNEL
         && m.subtype === constants.SSH_CHANNEL_REQUEST_SHELL) {
-console.log('emit shell!');
             m.channelReplySuccess();
             session.emit('shell', chan);
         }
