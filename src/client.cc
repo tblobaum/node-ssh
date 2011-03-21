@@ -2,11 +2,6 @@
 
 Persistent<FunctionTemplate> Client::constructor_template;
     
-static int accept(eio_req *);
-static int acceptAfter(eio_req *);
-static int message(eio_req *);
-static int messageAfter(eio_req *);
-
 void Client::Initialize() {
     HandleScope scope;
     
@@ -52,16 +47,9 @@ int Client::GetMessageAfter(eio_req *req) {
         ssh_message msg = client->messageQueue.front();
         client->messageQueue.pop_front();
         
-        Persistent<Object> msgObj = Persistent<Object>::New(
-            Msg::constructor_template->GetFunction()->NewInstance()
-        );
-        Msg *m = ObjectWrap::Unwrap<Msg>(msgObj);
-        m->prepare(msg, msgObj);
-        m->Ref();
-        
+        Msg *m = new Msg(msg);
         Handle<Value> argv[1];
-        argv[0] = msgObj;
-        
+        argv[0] = m->handle_;
         client->Emit(String::NewSymbol("message"), 1, argv);
     }
     

@@ -5,14 +5,14 @@ var path = require('path');
 var exports = module.exports = function (keys) {
     if (keys === undefined) {
         keys = {};
-        var dsaFile = process.env.HOME + '/.ssh/id_dsa';
         var rsaFile = process.env.HOME + '/.ssh/id_rsa';
+        var dsaFile = process.env.HOME + '/.ssh/id_dsa';
         
-        if (path.existsSync(dsaFile)) {
-            keys.dsa = dsaFile;
-        }
-        else if (path.existsSync(rsaFile)) {
+        if (path.existsSync(rsaFile)) {
             keys.rsa = rsaFile;
+        }
+        else if (path.existsSync(dsaFile)) {
+            keys.dsa = dsaFile;
         }
     }
     

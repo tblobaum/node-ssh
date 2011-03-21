@@ -20,8 +20,7 @@ using namespace node;
 class Msg : public ObjectWrap {
 public:
     ssh_message message;
-    Msg();
-    void prepare(ssh_message, Persistent<Object>);
+    Msg(ssh_message);
     
     static Persistent<FunctionTemplate> constructor_template;
     static Handle<Value> New(const Arguments &);

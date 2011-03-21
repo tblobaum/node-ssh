@@ -2,24 +2,26 @@
 
 Persistent<FunctionTemplate> Msg::constructor_template;
 
-Msg::Msg() {}
-
-void Msg::prepare(ssh_message msg, Persistent<Object> target) {
+Msg::Msg(ssh_message msg) {
+    Wrap(Persistent<Object>::New(
+        constructor_template->GetFunction()->NewInstance()
+    ));
+    
     message = msg;
     
     int type = ssh_message_type(msg);
     int subtype = ssh_message_subtype(msg);
     
-    target->Set(String::NewSymbol("type"), Integer::New(type));
-    target->Set(String::NewSymbol("subtype"), Integer::New(subtype));
+    handle_->Set(String::NewSymbol("type"), Integer::New(type));
+    handle_->Set(String::NewSymbol("subtype"), Integer::New(subtype));
     
     if (type == SSH_REQUEST_AUTH) {
         if (subtype == SSH_AUTH_METHOD_PASSWORD) {
-            target->Set(
+            handle_->Set(
                 String::NewSymbol("user"),
                 String::New(ssh_message_auth_user(msg))
             );
-            target->Set(
+            handle_->Set(
                 String::NewSymbol("password"),
                 String::New(ssh_message_auth_password(msg))
             );
@@ -56,14 +58,12 @@ void Msg::Initialize() {
 
 Handle<Value> Msg::New(const Arguments &args) {
     HandleScope scope;
-    
-    Msg *msg = new Msg();
-    msg->Wrap(args.This());
-    
     return args.This();
 }
 
 Handle<Value> Msg::ReplyDefault(const Arguments &args) {
+    HandleScope scope;
+    
     ssh_message msg = ObjectWrap::Unwrap<Msg>(args.This())->message;
     ssh_message_reply_default(msg);
     ssh_message_free(msg);
@@ -72,6 +72,8 @@ Handle<Value> Msg::ReplyDefault(const Arguments &args) {
 }
 
 Handle<Value> Msg::AuthSetMethods(const Arguments &args) {
+    HandleScope scope;
+    
     ssh_message msg = ObjectWrap::Unwrap<Msg>(args.This())->message;
     if (args[0]->IsNumber()) {
         ssh_message_auth_set_methods(
