@@ -16,6 +16,9 @@
 using namespace v8;
 using namespace node;
 
+#include "client.h"
+#include "constants.h"
+
 class SSHD : EventEmitter {
 private:
     static Persistent<FunctionTemplate> constructor_template;
@@ -38,6 +41,11 @@ public:
     static int Accept(eio_req *);
     static int AcceptAfter(eio_req *);
     static Persistent<String> sessionSymbol;
+};
+
+struct ClientServerPair {
+    SSHD *server;
+    Client *client;
 };
 
 #endif

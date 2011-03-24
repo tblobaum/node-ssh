@@ -1,14 +1,8 @@
 #include "sshd.h"
-#include "client.h"
-#include "constants.h"
 
 Persistent<FunctionTemplate> SSHD::constructor_template;
 Persistent<String> SSHD::sessionSymbol;
-
-struct ClientServerPair {
-    SSHD *server;
-    Client *client;
-};
+ClientServerPair *makePair(SSHD *);
 
 void SSHD::setPort(Local<Value> port) {
     if (port->IsNumber()) {
@@ -144,12 +138,7 @@ Handle<Value> SSHD::Listen(const Arguments &args) {
         );
     }
     
-    ClientServerPair *pair = new ClientServerPair;
-    
-    pair->server = sshd;
-    pair->client = new Client;
-    
-    eio_custom(Accept, EIO_PRI_DEFAULT, AcceptAfter, pair);
+    eio_custom(Accept, EIO_PRI_DEFAULT, AcceptAfter, makePair(sshd));
     ev_ref(EV_DEFAULT_UC);
     
     return args.This();
@@ -192,6 +181,7 @@ printf("4\n"); fflush(stdout);
     Handle<Value> argv[1];
     argv[0] = client->handle_;
 printf("5\n"); fflush(stdout);
+    client->Ref();
 printf("6\n"); fflush(stdout);
     server->Emit(String::NewSymbol("session"), 1, argv);
 printf("7\n"); fflush(stdout);
@@ -207,12 +197,9 @@ printf("8\n"); fflush(stdout);
     
     if (!server->closed) {
 printf("9\n"); fflush(stdout);
-        pair->client = new Client;
-printf("10\n"); fflush(stdout);
-        
-        eio_custom(Accept, EIO_PRI_DEFAULT, AcceptAfter, pair);
+        eio_custom(Accept, EIO_PRI_DEFAULT, AcceptAfter, makePair(server));
         ev_ref(EV_DEFAULT_UC);
-printf("11\n"); fflush(stdout);
+printf("10\n"); fflush(stdout);
     }
     
     return 0;
@@ -223,4 +210,11 @@ Handle<Value> SSHD::Close(const Arguments &args) {
     SSHD *sshd = ObjectWrap::Unwrap<SSHD>(args.This());
     sshd->closed = true;
     return args.This();
+}
+
+ClientServerPair *makePair(SSHD *sshd) {
+    ClientServerPair *p = new ClientServerPair;
+    p->server = sshd;
+    p->client = new Client;
+    return p;
 }

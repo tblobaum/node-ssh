@@ -28,7 +28,7 @@ def build(bld):
     sshd.target = 'sshd'
     sshd.source = [
         'src/init.cc', 'src/sshd.cc', 'src/client.cc',
-        'src/msg.cc', 'src/chan.cc'
+        'src/msg.cc', 'src/chan.cc', 'src/constants.cc'
     ]
     sshd.cxxflags = [ '-D_FILE_OFFSET_BITS=64', '-D_LARGEFILE_SOURCE' ]
     sshd.cxxflags.append(
