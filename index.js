@@ -24,6 +24,7 @@ var exports = module.exports = function (keys) {
         createServer : function (cb) {
             var server = new sshd.Server(keys);
             server.on('session', function (s) {
+console.log('got session!!!!');
                 cb(wrapSession(s));
             });
             return server;

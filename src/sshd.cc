@@ -8,7 +8,6 @@ Persistent<String> SSHD::sessionSymbol;
 struct ClientServerPair {
     SSHD *server;
     Client *client;
-    Persistent<Object> clientObj;
 };
 
 void SSHD::setPort(Local<Value> port) {
@@ -148,12 +147,7 @@ Handle<Value> SSHD::Listen(const Arguments &args) {
     ClientServerPair *pair = new ClientServerPair;
     
     pair->server = sshd;
-    
-    pair->clientObj = Persistent<Object>::New(
-        Client::constructor_template->GetFunction()->NewInstance()
-    );
-    pair->client = ObjectWrap::Unwrap<Client>(pair->clientObj);
-    pair->client->Ref();
+    pair->client = new Client;
     
     eio_custom(Accept, EIO_PRI_DEFAULT, AcceptAfter, pair);
     ev_ref(EV_DEFAULT_UC);
@@ -166,6 +160,7 @@ int SSHD::Accept (eio_req *req) {
     SSHD *server = pair->server;
     Client *client = pair->client;
     
+printf("0\n"); fflush(stdout);
     int r = ssh_bind_accept(server->sshbind, client->session);
     if (r == SSH_ERROR) {
         fprintf(stderr,
@@ -174,6 +169,7 @@ int SSHD::Accept (eio_req *req) {
         );
         return 1;
     }
+printf("1\n"); fflush(stdout);
     if (ssh_handle_key_exchange(client->session)) {
         fprintf(stderr,
             "Error handling key exchange: %s\n",
@@ -182,17 +178,23 @@ int SSHD::Accept (eio_req *req) {
         return 1;
     }
     
+printf("2\n"); fflush(stdout);
     return 0;
 }
 
 int SSHD::AcceptAfter (eio_req *req) {
+printf("3\n"); fflush(stdout);
     ClientServerPair *pair = (ClientServerPair *) req->data;
     SSHD *server = pair->server;
     Client *client = pair->client;
+printf("4\n"); fflush(stdout);
     
     Handle<Value> argv[1];
-    argv[0] = pair->clientObj;
-    server->Emit(sessionSymbol, 1, argv);
+    argv[0] = client->handle_;
+printf("5\n"); fflush(stdout);
+printf("6\n"); fflush(stdout);
+    server->Emit(String::NewSymbol("session"), 1, argv);
+printf("7\n"); fflush(stdout);
     
     eio_custom(
         Client::GetMessage,
@@ -200,18 +202,20 @@ int SSHD::AcceptAfter (eio_req *req) {
         Client::GetMessageAfter,
         client
     );
+printf("8\n"); fflush(stdout);
     ev_ref(EV_DEFAULT_UC);
     
     if (!server->closed) {
-        pair->clientObj = Persistent<Object>::New(
-            Client::constructor_template->GetFunction()->NewInstance()
-        );
-        pair->client = ObjectWrap::Unwrap<Client>(pair->clientObj);
-        pair->client->Ref();
+printf("9\n"); fflush(stdout);
+        pair->client = new Client;
+printf("10\n"); fflush(stdout);
         
         eio_custom(Accept, EIO_PRI_DEFAULT, AcceptAfter, pair);
         ev_ref(EV_DEFAULT_UC);
+printf("11\n"); fflush(stdout);
     }
+    
+    return 0;
 }
 
 Handle<Value> SSHD::Close(const Arguments &args) {

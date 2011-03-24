@@ -16,21 +16,23 @@ void Client::Initialize() {
 
 Handle<Value> Client::New(const Arguments &args) {
     HandleScope scope;
-    
-    Client *client = new Client();
-    client->Wrap(args.This());
-    
     return args.This();
 }
 
 Client::Client() {
     session = ssh_new();
+    Wrap(Persistent<Object>::New(
+        constructor_template->GetFunction()->NewInstance()
+    ));
+    Ref();
 }
 
 int Client::GetMessage(eio_req *req) {
     Client *client = (Client *) req->data;
     
+printf("get message\n"); fflush(stdout);
     ssh_message msg = ssh_message_get(client->session);
+printf("got message\n"); fflush(stdout);
     client->messageQueue.push_back(msg);
     
     return 0;
