@@ -21,9 +21,9 @@ Handle<Value> Client::New(const Arguments &args) {
 
 Client::Client() {
     session = ssh_new();
-    Wrap(Persistent<Object>::New(
+    Wrap(
         constructor_template->GetFunction()->NewInstance()
-    ));
+    );
     Ref();
 }
 

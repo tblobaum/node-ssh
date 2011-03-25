@@ -181,8 +181,8 @@ printf("4\n"); fflush(stdout);
     Handle<Value> argv[1];
     argv[0] = client->handle_;
 printf("5\n"); fflush(stdout);
-    client->Ref();
 printf("6\n"); fflush(stdout);
+printf("server = %x\n", server);
     server->Emit(String::NewSymbol("session"), 1, argv);
 printf("7\n"); fflush(stdout);
     
