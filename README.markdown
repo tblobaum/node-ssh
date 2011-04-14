@@ -3,6 +3,12 @@ ssh
 
 Create ssh servers in node.js!
 
+status
+======
+
+This module has all kinds of problems since the node.js thread pool does not
+play nicely with libssh.
+
 example
 =======
 
